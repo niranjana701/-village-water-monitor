@@ -2,6 +2,8 @@
 
 **SIH 2026 Internal Practical Assessment — Niranjana Devi M (411723106060), PSVPEC ECE**
 
+## Demo Video https://drive.google.com/file/d/1qr0qKrUT8R0J4SYJjiVvSXiQQ0WrpGYW/view?usp=sharing
+
 ## Problem (2 lines)
 
 Handpumps and taps stop working and stay unrepaired for weeks because breakdowns are only reported when someone walks to the panchayat office to complain. This project automatically detects whether a water point is working and shows the panchayat which points are down and for how long, so repairs can be prioritised without waiting for a complaint.
