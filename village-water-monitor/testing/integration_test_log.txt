@@ -1,0 +1,101 @@
+INTEGRATION TEST RUN — 2026-07-25 19:39:22
+
+======================================================================
+1. MAIN FLOW — end to end with our own data
+======================================================================
+Loaded 100 readings from waterpoint_readings.csv
+Sample question -> answer:
+  Q: 'is wp001 working'
+  A: WP001 (Kollampalayam) is currently DOWN (last checked 2026-07-20 08:15:00).
+
+======================================================================
+2. PRIVACY — same question asked as two different users
+======================================================================
+
+User: officer_kollam (habitation: Kollampalayam)
+  Q: 'list down waterpoints'
+  A: Currently down: WP001 (Kollampalayam)
+  Q: 'is wp001 working'
+  A: WP001 (Kollampalayam) is currently DOWN (last checked 2026-07-20 08:15:00).
+  Q: 'is wp004 working'
+  A: I can only answer questions about waterpoints in Kollampalayam. WP004 is not in your area.
+
+User: officer_sunda (habitation: Sundapatti)
+  Q: 'list down waterpoints'
+  A: No waterpoints are currently down.
+  Q: 'is wp001 working'
+  A: I can only answer questions about waterpoints in Sundapatti. WP001 is not in your area.
+  Q: 'is wp004 working'
+  A: WP004 (Sundapatti) is currently WORKING (last checked 2026-07-20 08:15:00).
+
+Check: officer_kollam should never see Sundapatti-specific waterpoint data and vice versa. Confirmed above — cross-habitation waterpoint requests are refused, not silently answered.
+
+======================================================================
+3. REFUSAL — question outside the assistant's scope
+======================================================================
+Q: 'what is the price of rice today'
+A: I'm not confident I understood that question. Here is what I can answer:
+  - Is waterpoint <id> working? (e.g. 'is wp003 working')
+  - How long has waterpoint <id> been down? (e.g. 'how long has wp004 been down')
+  - Which waterpoints are currently down? (e.g. 'list down waterpoints')
+  - How many times was water drawn at waterpoint <id>? (e.g. 'usage count for wp002')
+  - Which habitation has the most down waterpoints? (e.g. 'which habitation has most down points')
+
+Check: assistant admits it doesn't understand rather than guessing.
+
+======================================================================
+4. NORMAL / EXTREME / FAULTY CASES
+======================================================================
+
+-- NORMAL case: WP002, healthy readings --
+A: WP002 (Kollampalayam) is currently WORKING (last checked 2026-07-20 08:15:00).
+A: WP002 recorded 92 total water draws across 10 readings.
+
+-- EXTREME case: reading_id=44 has usage_count=500 (faulty spike) --
+Raw row: {'reading_id': 44, 'waterpoint_id': 'WP005', 'habitation': 'Sundapatti', 'flow_ok': 1, 'usage_count': 500, 'recorded_at': datetime.datetime(2026, 7, 20, 6, 45), 'status_label': 'working'}
+Check: this implausible value is still stored (Task 1 requires keeping awkward cases), but a real sensing node (Task 4) would have rejected it via the plausibility check before it ever reached the dataset.
+
+-- FAULTY case: reading_id=83 has a missing flow_ok value --
+Raw row: {'reading_id': 83, 'waterpoint_id': 'WP009', 'habitation': 'Perumbakkam', 'flow_ok': None, 'usage_count': 0, 'recorded_at': datetime.datetime(2026, 7, 20, 6, 30), 'status_label': 'down'}
+flow_ok loaded as: None (None = missing, handled without crashing)
+
+-- STUCK case: WP004 readings 37-40 have identical usage_count=7 --
+  reading_id=37 usage_count=7
+  reading_id=38 usage_count=7
+  reading_id=39 usage_count=7
+  reading_id=40 usage_count=7
+Check: identical repeated values are a red flag for a stuck sensor - this is exactly what Task 4's smoothing logic is designed to catch in the live sensing node, and what a future anomaly check on this dashboard could flag for a technician to inspect the hardware.
+
+======================================================================
+5. OFFLINE / LOCAL BEHAVIOUR
+======================================================================
+The assistant reads only from a local CSV file (waterpoint_readings.csv) and makes no network calls at all. There is nothing to 'disconnect' - confirmed by inspecting assistant.py and assistant_with_auth.py: no imports of requests/urllib/socket, no API calls. It will keep working identically with the network cable pulled out.
+
+======================================================================
+6. HAND-VERIFIED FIGURE
+======================================================================
+Waterpoint: WP002
+Individual usage_count values: [11, 10, 10, 7, 6, 20, 5, 16, 4, 3]
+Manual sum (by hand): 11 + 10 + 10 + 7 + 6 + 20 + 5 + 16 + 4 + 3 = 92
+System answer: WP002 recorded 92 total water draws across 10 readings.
+MATCH: YES
+
+======================================================================
+7. EMPTY / MISSING / ERROR STATES
+======================================================================
+
+-- Asking about a waterpoint that doesn't exist (WP099) --
+A: I have no records for WP099.
+
+-- Asking with an empty dataset --
+A: I have no records for WP001.
+
+-- Unknown user login --
+A: Unknown user 'nonexistent_user'. I can't answer without a recognised login.
+
+Check: every case above returns a clear message, never a blank response, a crash, or a silent failure.
+
+======================================================================
+TEST RUN COMPLETE
+======================================================================
+Total checks logged above. See integration_test_log.txt for full record.
