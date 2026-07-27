@@ -193,16 +193,16 @@ def match_intent(raw_text, data):
     text = normalize_input(raw_text)
     wp_id = extract_waterpoint_id(text)
 
-    if wp_id and any(k in text for k in ["working", "status", "is up", "is it down"]):
+    if wp_id and any(k in text for k in ["working", "status", "is up", "is it down", "velai seiyudha", "velai iruka", "nalla iruka"]):
         return intent_is_working(data, wp_id)
 
-    if wp_id and any(k in text for k in ["how long", "down for", "since when"]):
+    if wp_id and (any(k in text for k in ["how long", "down for", "since when"]) or ("how many times" in text and "down" in text)):
         return intent_downtime_duration(data, wp_id)
 
     if any(k in text for k in ["which waterpoints are down", "list down", "currently down", "all down"]):
         return intent_list_down(data)
 
-    if wp_id and any(k in text for k in ["usage", "how many times", "draw", "drawn"]):
+    if wp_id and any(k in text for k in ["usage", "draw", "drawn"]):
         return intent_usage_count(data, wp_id)
 
     if any(k in text for k in ["which habitation", "most down", "habitation with"]):
